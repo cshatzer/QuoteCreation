@@ -1,125 +1,109 @@
-import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import jsPDF from "jspdf";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Generator - Hawkins Electric Service</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: auto;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+    </style>
+    <script>
+        const laborRate = 145;
+        const helperRate = 75;
 
-const laborRate = 145; // Labor rate per hour
-const helperRate = 75; // Helper rate per hour
+        function calculateMaterialMarkup(cost) {
+            cost = parseFloat(cost) || 0;
+            const markupRates = [
+                { threshold: 10, multiplier: 4 },
+                { threshold: 30, multiplier: 3 },
+                { threshold: 150, multiplier: 2 },
+                { threshold: Infinity, multiplier: 1.65 },
+            ];
+            return markupRates.find(({ threshold }) => cost <= threshold).multiplier * cost;
+        }
 
-const calculateMaterialMarkup = (cost) => {
-  if (cost <= 10) return cost * 4; // 300% markup
-  if (cost <= 30) return cost * 3; // 200% markup
-  if (cost <= 150) return cost * 2; // 100% markup
-  return cost * 1.65; // 65% markup
-};
+        function calculateQuote() {
+            const hours = parseFloat(document.getElementById("hours").value) || 0;
+            const helperHours = parseFloat(document.getElementById("helperHours").value) || 0;
+            const materialCost = parseFloat(document.getElementById("materialCost").value) || 0;
 
-export default function QuoteGenerator() {
-  const [hours, setHours] = useState(0);
-  const [helperHours, setHelperHours] = useState(0);
-  const [materialCost, setMaterialCost] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+            const laborCost = hours * laborRate;
+            const helperCost = helperHours * helperRate;
+            const markedUpMaterialCost = calculateMaterialMarkup(materialCost);
+            const total = laborCost + helperCost + markedUpMaterialCost;
 
-  const correctUsername = "LanhamClifton";
-  const correctPassword = "1234";
+            document.getElementById("totalQuote").innerText = `Total Quote: $${total.toFixed(2)}`;
+        }
 
-  const handleLogin = () => {
-    if (username === correctUsername && password === correctPassword) {
-      setLoggedIn(true);
-    } else {
-      alert("Invalid login credentials");
-    }
-  };
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
-  const calculateQuote = () => {
-    const laborCost = hours * laborRate;
-    const helperCost = helperHours * helperRate;
-    const markedUpMaterialCost = calculateMaterialMarkup(materialCost);
-    const finalTotal = laborCost + helperCost + markedUpMaterialCost;
-    setTotal(finalTotal);
-  };
-
-  const generatePDF = () => {
-    const doc = new jsPDF();
-    doc.text("Hawkins Electric Service, Inc. Quote", 20, 20);
-    doc.text(`Created by: ${username}`, 20, 30);
-    doc.text(`Labor Hours: ${hours}`, 20, 50);
-    doc.text(`Helper Hours: ${helperHours}`, 20, 60);
-    doc.text(`Material Cost: $${materialCost.toFixed(2)}`, 20, 70);
-    doc.text(`Total: $${total.toFixed(2)}`, 20, 80);
-    doc.save("quote.pdf");
-  };
-
-  if (!loggedIn) {
-    return (
-      <div className="flex flex-col items-center p-6">
-        <Card className="w-full max-w-md p-6">
-          <CardContent>
-            <h1 className="text-xl font-bold mb-4">Login</h1>
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="border p-2 w-full mb-4"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="border p-2 w-full mb-4"
-            />
-            <Button onClick={handleLogin} className="w-full">
-              Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center p-6">
-      <Card className="w-full max-w-lg p-6">
-        <CardContent>
-          <h1 className="text-xl font-bold mb-4">Generate a Quote</h1>
-          <label className="block mb-2">Labor Hours:</label>
-          <input
-            type="number"
-            value={hours}
-            onChange={(e) => setHours(Number(e.target.value))}
-            className="border p-2 w-full mb-4"
-          />
-          <label className="block mb-2">Helper Hours:</label>
-          <input
-            type="number"
-            value={helperHours}
-            onChange={(e) => setHelperHours(Number(e.target.value))}
-            className="border p-2 w-full mb-4"
-          />
-          <label className="block mb-2">Material Cost ($):</label>
-          <input
-            type="number"
-            value={materialCost}
-            onChange={(e) => setMaterialCost(Number(e.target.value))}
-            className="border p-2 w-full mb-4"
-          />
-          <Button onClick={calculateQuote} className="w-full mb-4">
-            Calculate Quote
-          </Button>
-          {total > 0 && (
-            <div className="text-lg font-semibold mt-4">
-              Total Quote: ${total.toFixed(2)}
-            </div>
-          )}
-          <Button onClick={generatePDF} className="w-full mt-4">
-            Download Quote as PDF
-          </Button>
-        </CardContent>
-      </Card>
+            doc.text("Hawkins Electric Service, Inc. Quote", 20, 20);
+            doc.text(`Point of Contact: ${document.getElementById("contactName").value}`, 20, 40);
+            doc.text(`Phone Number: ${document.getElementById("contactPhone").value}`, 20, 50);
+            doc.text(`Email Address: ${document.getElementById("contactEmail").value}`, 20, 60);
+            doc.text("Scope of Work:", 20, 70);
+            doc.text(document.getElementById("scopeOfWork").value, 20, 80, { maxWidth: 170 });
+            doc.text(`Labor Hours: ${document.getElementById("hours").value}`, 20, 100);
+            doc.text(`Helper Hours: ${document.getElementById("helperHours").value}`, 20, 110);
+            doc.text(`Material Cost: $${parseFloat(document.getElementById("materialCost").value).toFixed(2)}`, 20, 120);
+            doc.text(`Total: $${document.getElementById("totalQuote").innerText.split('$')[1]}`, 20, 130);
+            doc.save("quote.pdf");
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <img src="logo.png" alt="Hawkins Electric Service Logo">
+        <h1>Generate a Quote</h1>
+        <label>Point of Contact:</label><input type="text" id="contactName"><br>
+        <label>Phone Number:</label><input type="text" id="contactPhone"><br>
+        <label>Email Address:</label><input type="email" id="contactEmail"><br>
+        <label>Scope of Work:</label><textarea id="scopeOfWork"></textarea><br>
+        <label>Labor Hours:</label><input type="number" id="hours"><br>
+        <label>Helper Hours:</label><input type="number" id="helperHours"><br>
+        <label>Material Cost ($):</label><input type="number" id="materialCost"><br>
+        <button onclick="calculateQuote()">Calculate Quote</button>
+        <h2 id="totalQuote">Total Quote: $0.00</h2>
+        <button onclick="generatePDF()">Download Quote as PDF</button>
     </div>
-  );
-}
+</body>
+</html>
